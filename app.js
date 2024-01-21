@@ -18,7 +18,7 @@ const localStrategy = require('passport-local');
 const User=require('./models/user');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
-const MongoDBStore = require('connect-mongodb-session')(session);
+const MongoStore = require('connect-mongo');
 const port = process.env.PORT;
 
 //  -------------db 
@@ -51,29 +51,47 @@ app.use(mongoSanitize({
     replaceWith: '_'
 }))
 const secret = process.env.SECRET || 'thisshouldbeabettersecret!';
-const store = new MongoDBStore({
-    url: dbUrl,
-    secret:secret,
-    touchAfter: 24 * 60 * 60
-});
+// const store = new MongoDBStore({
+//     url: dbUrl,
+//     secret:secret,
+//     touchAfter: 24 * 60 * 60
+// });
 
-store.on("error", function (e) {
-    console.log("SESSION STORE ERROR", e);
-});
+// store.on("error", function (e) {
+//     console.log("SESSION STORE ERROR", e);
+// });
+
+// const sessionConfig = {
+//     store: store,  // Use the store directly
+//     name: 'session',
+//     secret,
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: {
+//         httpOnly: true,
+//         expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+//         maxAge: 1000 * 60 * 60 * 24 * 7
+//     }
+// };
 
 const sessionConfig = {
-    store: store,  // Use the store directly
-    name: 'session',
-    secret,
+    store: MongoStore.create({
+      mongoUrl: process.env.DB_URL || "mongodb://localhost:27017/Yelp-Camp",
+      touchAfter: 24 * 60 * 60,
+    }),
+    name: "session",
+    secret: "thisshouldbeabettersecret!",
     resave: false,
     saveUninitialized: true,
     cookie: {
-        httpOnly: true,
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-        maxAge: 1000 * 60 * 60 * 24 * 7
-    }
-};
-
+      httpOnly: true,
+      // secure: true,
+      expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
+  };
+  
+  
 app.use(session(sessionConfig));
 
 app.use(flash());
